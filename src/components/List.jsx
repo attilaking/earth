@@ -7,7 +7,6 @@ export class List extends Component {
             listData: this.props.data,
             divData: '',
             rowsLoaded: this.props.pageCount,
-
         }
 
         this.colState = [];
@@ -16,23 +15,39 @@ export class List extends Component {
         this.loadRows = this.loadRows.bind(this);
     }
 
-
     /**
     * Sorts a 2 dimensianal array.
     *
-    * @param {number} colIndex Which column to sort
+    * @param {array} The data array
     * @param {function} basicComparator The power, must be a natural number.
     * @param {boolean} if true, reversed order
     */
     sortArray = (a, colIndex) => {
-        this.b = !this.b
-        console.log(this.b)
 
-        let c = a.sort(compareNthElements(colIndex, basicComparator, this.b));
+        let toBeSorted = []
+
+        // Create a new array with the visible rows
+        for (let k = 0;k<this.state.rowsLoaded;k++){
+            toBeSorted.push(a[k]);
+        }
+
+        // Remvove visible rows from original array
+        for (let k = 0;k<this.state.rowsLoaded;k++){
+          a.shift()
+        }
+
+        // sort the visible rows
+        let c = toBeSorted.sort(compareNthElements(colIndex, basicComparator, this.b));
+
+            // toggle true/false for reverse ordering
+            this.b = !this.b
+
+        // Join the visible(sorted) and non visible rows
+        let sortedArray = toBeSorted.concat(a);
 
         // Once it's sorted, lets set the state
         this.setState({
-            listData: c
+            listData: sortedArray
         }, () => {
             this.loadRows();
         })
@@ -85,9 +100,6 @@ export class List extends Component {
 *
 */
     loadRows() {
-
-        function changeBackground(event) {
-        }
 
         let that = this;
         // Style for individual cells
@@ -171,7 +183,6 @@ export class List extends Component {
         let arr = [];
         let inarr = [];
 
-
         // Lets convert the array to a 2 dimensional array. Each sub-arrays will be same legtht as many columns
         this.props.data.map((item, i) => {
             inarr.push(item);
@@ -181,10 +192,10 @@ export class List extends Component {
             }
         })
 
+        // Lets fill the array with booleans. This will be used in the sortArray() method
         for(let i = 0;i<this.props.cols;i++){
-        this.colState.push(true);
+        this.colState.push(false);
         }
-
 
         // Once it is multi dimensional, set state
         this.setState({
