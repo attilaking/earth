@@ -4,33 +4,91 @@ export class List extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            listData: [this.props.data],
+            listData: this.props.data,
             divData: '',
-            rowsToLoad: this.props.pageCount * this.props.cols
+            rowsLoaded: this.props.pageCount,
+
         }
+
+        this.colState = [];
+        this.b=true;
         this.loadMore = this.loadMore.bind(this);
+        this.loadRows = this.loadRows.bind(this);
     }
 
-    // Load more rows when clicked
+
+    /**
+    * Sorts a 2 dimensianal array.
+    *
+    * @param {number} colIndex Which column to sort
+    * @param {function} basicComparator The power, must be a natural number.
+    * @param {boolean} if true, reversed order
+    */
+    sortArray = (a, colIndex) => {
+        this.b = !this.b
+        console.log(this.b)
+
+        let c = a.sort(compareNthElements(colIndex, basicComparator, this.b));
+
+        // Once it's sorted, lets set the state
+        this.setState({
+            listData: c
+        }, () => {
+            this.loadRows();
+        })
+
+        function basicComparator(first, second) {
+            if (first === second) {
+                return 0;
+            } else if (first < second) {
+                return -1;
+            } else {
+                return 1;
+            }
+        }
+
+        function compareNthElements(n, comparatorFunction, reverse) {
+            return function (first, second) {
+                if (reverse === true) {
+                    return comparatorFunction(second[n], first[n]);
+                } else {
+                    return comparatorFunction(first[n], second[n]);
+                }
+            }
+        }
+    }
+
+    /**
+   * Loads more rows after the initial load
+   *
+   */
     loadMore() {
+
         // Just to makes variables more readable
-        let allrows = this.props.data.length;
-        let loadedRows = this.state.rowsToLoad;
+        let allrows = this.state.listData.length;
+        let loadedRows = this.state.rowsLoaded;
         let rowsToLoad = this.props.pageCount;
-        let cols = this.props.cols;
 
         // If there is still rows to load
         if (allrows > loadedRows) {
             this.setState({
-                rowsToLoad: this.state.rowsToLoad + (cols * rowsToLoad)
+                rowsLoaded: parseInt(this.state.rowsLoaded) + parseInt(rowsToLoad)
             }, () => {
+                //console.log(this.state.rowsLoaded)
                 this.loadRows()
             })
         }
     }
 
-    // Load rows
+    /**
+* Loads rows
+*
+*/
     loadRows() {
+
+        function changeBackground(event) {
+        }
+
         let that = this;
         // Style for individual cells
         const cellStyleEven = {
@@ -58,33 +116,40 @@ export class List extends Component {
             width: 100 / this.props.cols + '%',
             paddingTop: this.props.cellpadding,
             paddingBottom: this.props.cellpadding,
-            borderBottom: this.props.headerBorderBottom
+            borderBottom: this.props.headerBorderBottom,
+            cursor: 'pointer'
         }
 
         try {
             // mapping header data
             let promise1 = this.props.headers.map(
                 function (item, i) {
-                    return <div style={headerStyle} key={i}>{item}</div>
+                    //console.log(that.props.data)
+                    return <div style={headerStyle} onClick={() => { that.sortArray(that.state.listData, i) }} key={i}>{item}</div>
                 }
             );
             // mapping table data
             let currentrow = 'odd';
+            let row = 0;
 
-            let promise2 = this.props.data.map(
+            let promise2 = that.state.listData.map(
                 function (item, i) {
 
-                    if (i < that.state.rowsToLoad) {
+                    if (i < that.state.rowsLoaded) {
 
                         // Check if even or odd row
-                        if ((i + that.props.cols) % that.props.cols === 0) {
+                        if (i % 1 === 0) {
+                            row++;
                             currentrow === 'even' ? currentrow = 'odd' : currentrow = 'even'
                         }
 
-                        // Create zebra style
-                        return currentrow === 'even' ?
-                            <div style={cellStyleEven} key={i}>{item}</div> :
-                            <div style={cellStyleOdd} key={i}>{item}</div>;
+                        // Loop through each rows
+                        return item.map((elem, index) => {
+                            // Create zebra style
+                            return currentrow === 'even' ?
+                                <div row={row} style={cellStyleEven} key={'row' + i + '' + index} id={i + index}>{elem}</div> :
+                                <div row={row} style={cellStyleOdd} key={'row' + i + '' + index} id={i + index}>{elem}</div>;
+                        })
                     }
                 }
             );
@@ -101,7 +166,40 @@ export class List extends Component {
     }
 
     componentDidMount() {
-        this.loadRows()
+
+        //console.log(this.state.listData[1])
+        let arr = [];
+        let inarr = [];
+
+
+        // Lets convert the array to a 2 dimensional array. Each sub-arrays will be same legtht as many columns
+        this.props.data.map((item, i) => {
+            inarr.push(item);
+            if (i % this.props.cols === this.props.cols - 1) {
+                arr.push(inarr)
+                inarr = []
+            }
+        })
+
+        for(let i = 0;i<this.props.cols;i++){
+        this.colState.push(true);
+        }
+
+
+        // Once it is multi dimensional, set state
+        this.setState({
+            listData: arr,
+        }, () => {
+            // If the actual rows in the array are less than the initial rows set in config
+            if (this.state.listData.length < 10) {
+                this.setState({
+                    rowsLoaded: this.state.listData.length
+                })
+            }
+            // Now let's load the rows
+            this.loadRows()
+        })
+
     }
 
     render() {
@@ -111,11 +209,16 @@ export class List extends Component {
             width: this.props.tableWidth + '%'
         }
 
+        const loadMoreText = {
+            cursor: 'pointer'
+        }
+
         return (
             <>
                 <div style={listDiv}>
                     {this.state.divData}
-                    <div onClick={this.loadMore}>Load more</div>
+
+                    <div style={loadMoreText} onClick={this.loadMore}>Load {(this.state.listData.length) - this.state.rowsLoaded} more rows</div>
                 </div>
             </>
         );

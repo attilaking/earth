@@ -8,7 +8,7 @@ function App() {
   function sampleData(count) {
     let a = [];
     for (let i = 0; i < count; i++) {
-      a.push(Math.random().toFixed(2));
+      a.push(Math.random().toString(36).substring(7));
     }
     return a;
   }
